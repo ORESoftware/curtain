@@ -1,0 +1,15 @@
+{
+  "name": "curtain",
+  "version": "0.0.1",
+  "description": "rate-limiter using Redis",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "rate",
+    "limiter"
+  ],
+  "author": "ORESoftware",
+  "license": "ISC"
+}
