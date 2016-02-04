@@ -1,13 +1,12 @@
 /**
  * Created by denman on 2/3/2016.
  */
-/**
- * Created by denman on 2/3/2016.
- */
 
 
-var debug = require('debug')('curtain:core');
 var Redis = require('ioredis');
+
+///////////////////////////////////////////////////
+
 
 function Rate(conf) {
     if (conf.redis) {
@@ -36,13 +35,26 @@ Rate.prototype.limit = function rateLimit(opts) {
     var periodMillis = opts.periodMillis ? parseInt(opts.periodMillis) : null;
     var identifier = opts.identifier ? String(opts.identifier) : null;
 
+
     return (req, res, next) => {
+
+
+        function redisSet(error, client, value) {
+
+            client.set(key, value, err => {
+                if (err) {
+                    next({type: Rate.errors.REDIS_ERROR, msg: err});
+                }
+                else {
+                    client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
+                    next(error);
+                }
+            });
+        }
 
         var key = String(req[identifier]);
 
-        debug('ip address:', key);
-
-        if (!maxReqsPerPeriod || !periodMillis || !identifier) {
+        if (!maxReqsPerPeriod || !periodMillis || !identifier || !key) {
             next({
                 type: Rate.errors.BAD_ARGUMENTS,
                 msg: `either opts.maxReqsPerPeriod (${opts.maxReqsPerPeriod}) or opts.periodMillis (${opts.periodMillis}) was null/undefined or not a valid number`
@@ -64,21 +76,17 @@ Rate.prototype.limit = function rateLimit(opts) {
                     });
 
                     var now = Date.now();
-                    result.push(now); //push timestamp of latest request
+                    result.push(now); //always push timestamp of latest request
 
                     var length = result.length;
-
                     var old, error = null;
 
-                    if (length > maxReqsPerPeriod) {
+                    if (length >= maxReqsPerPeriod) {
 
                         old = result.shift();  // get the oldest request time and examine it
-
                         var diff = now - old;
 
-                        debug('diff:', diff);
-
-                        if (diff <= periodMillis) {
+                        if (diff <= periodMillis) {  //check if difference between newest request and oldest stored request is smaller than window
                             error = {
                                 type: Rate.errors.RATE_EXCEEDED,
                                 msg: 'Exceeded ' + maxReqsPerPeriod + ' requests per second for XRE events'
@@ -86,29 +94,12 @@ Rate.prototype.limit = function rateLimit(opts) {
                         }
                     }
 
-                    debug('result array length:', result.length);
-                    this.client.set(key, JSON.stringify(result), err => {
-                        if (err) {
-                            next({type: Rate.errors.REDIS_ERROR, msg: err});
-                        }
-                        else {
-                            this.client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
-                            next(error); //TODO, we need to handle the case when a redis error occurs *and* an RATE_EXCEEDED error occurs
-                        }
-                    });
+                    redisSet(error, this.client, JSON.stringify(result));
 
                 }
                 else {
-                    debug('setting key for first time.');
-                    this.client.set(key, JSON.stringify([Date.now()]), err => {
-                        if (err) {
-                            next({type: Rate.errors.REDIS_ERROR, msg: err});
-                        }
-                        else {
-                            this.client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
-                            next();
-                        }
-                    });
+                    // setting new value in redis
+                    redisSet(null, this.client, JSON.stringify([Date.now()]));
                 }
 
             });
