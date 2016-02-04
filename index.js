@@ -8,25 +8,32 @@
 
 var debug = require('debug')('curtain:core');
 var Redis = require('ioredis');
-var ijson = require('idempotent-json');
 
 function Rate(conf) {
-    this.client = new Redis(conf.redis);
+    if (conf.redis) {
+        if (conf.redis.client) {
+            this.client = conf.redis.client;
+        }
+        else {
+            this.client = new Redis(conf.redis);
+        }
+    }
 }
 
 
-Rate.errors = {
+Rate.errors = Object.freeze({
 
-    'NO_KEY': 'no key was available to find the request.',
-    'RATE_EXCEEDED': 'rate exceeeded',
-    'REDIS_ERROR': 'Redis error'
+    'NO_KEY': 'NO_KEY',
+    'RATE_EXCEEDED': 'RATE_EXCEEDED',
+    'REDIS_ERROR': 'REDIS_ERROR',
+    'BAD_ARGUMENTS': 'BAD_ARGUMENTS'
 
-};
+});
 
 Rate.prototype.limit = function rateLimit(opts) {
 
-    var maxReqsPerPeriod = opts.maxReqsPerPeriod || 30;
-    var periodMillis = opts.periodMillis || 1000;
+    var maxReqsPerPeriod = opts.maxReqsPerPeriod ? parseInt(opts.maxReqsPerPeriod) : null;
+    var periodMillis = opts.periodMillis ? parseInt(opts.periodMillis) : null;
 
     return (req, res, next) => {
 
@@ -34,24 +41,25 @@ Rate.prototype.limit = function rateLimit(opts) {
 
         debug('ip address:', key);
 
-        if (!key) {
-            next({error: Rate.errors.NO_KEY});
+        if (!maxReqsPerPeriod || !periodMillis) {
+            next({
+                error: Rate.errors.BAD_ARGUMENTS,
+                msg: 'either opts.maxReqsPerPeriod (${opts.maxReqsPerPeriod}) or opts.periodMillis (${opts.periodMillis}) was null/undefined or not a valid number'
+            })
+        }
+        else if (!key) {
+            next({error: Rate.errors.NO_KEY, 'msg': 'no key was available to find the request.'});
         }
         else {
 
             this.client.get(key, (err, result) => {
-
                 if (err) {
                     next({error: Rate.errors.REDIS_ERROR});
                 }
                 else if (result) {
 
-                    result = ijson.parse(result).sort(function (a, b) {
-
-                        a = parseInt(a);
-                        b = parseInt(b);
-
-                        return a - b; //we run a sort by timestamp in case they are out of order, which may happen due to async nature
+                    result = JSON.parse(result).sort(function (a, b) {
+                        return a - b; //we must run a sort by timestamp in case they are out of order, which may happen due to async nature
                     });
 
                     var now = Date.now();
@@ -70,27 +78,36 @@ Rate.prototype.limit = function rateLimit(opts) {
                         debug('diff:', diff);
 
                         if (diff <= periodMillis) {
-                            error = {error: 'Exceeded ' + maxReqsPerPeriod + ' requests per second for XRE events'};
+                            error = {
+                                error: Rate.errors.RATE_EXCEEDED,
+                                msg: 'Exceeded ' + maxReqsPerPeriod + ' requests per second for XRE events'
+                            };
                         }
                     }
 
-                    debug('result array:', result);
-
+                    debug('result array length:', result.length);
                     this.client.set(key, JSON.stringify(result), err => {
                         if (err) {
-                            next({error: Rate.errors.REDIS_ERROR});
+                            next({error: Rate.errors.REDIS_ERROR, msg: err});
                         }
                         else {
                             this.client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
+                            next(error); //TODO, we need to handle the case when a redis error occurs *and* an RATE_EXCEEDED error occurs
                         }
-
                     });
 
                 }
                 else {
                     debug('setting key for first time.');
-                    this.client.set(key, JSON.stringify([Date.now()]));
-                    next();
+                    this.client.set(key, JSON.stringify([Date.now()]), err => {
+                        if (err) {
+                            next({error: Rate.errors.REDIS_ERROR, msg: err});
+                        }
+                        else {
+                            this.client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
+                            next();
+                        }
+                    });
                 }
 
             });
