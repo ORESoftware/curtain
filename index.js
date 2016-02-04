@@ -19,12 +19,10 @@ function Rate(conf) {
 
 Rate.prototype.limit = function rateLimit(opts) {
 
-    var self = this;
-
     var maxReqsPerPeriod = opts.maxReqsPerPeriod || 30;
     var periodMillis = opts.periodMillis || 1000;
 
-    return function (req, res, next) {
+    return (req, res, next) => {
 
         var key = String(req.ip);
 
@@ -35,7 +33,7 @@ Rate.prototype.limit = function rateLimit(opts) {
         }
         else {
 
-            self.client.get(key, function (err, result) {
+            this.client.get(key, (err, result) => {
 
                 if (err) {
                     next(err);
@@ -72,13 +70,13 @@ Rate.prototype.limit = function rateLimit(opts) {
 
                     log.debug('result array:', result);
 
-                    self.client.set(key, JSON.stringify(result));
+                    this.client.set(key, JSON.stringify(result));
                     next(error);
 
                 }
                 else {
                     log.debug('setting key for first time.');
-                    self.client.set(key, JSON.stringify([Date.now()]));
+                    this.client.set(key, JSON.stringify([Date.now()]));
                     next();
                 }
 
