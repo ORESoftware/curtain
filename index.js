@@ -21,8 +21,8 @@ Rate.prototype.limit = function rateLimit(opts) {
 
     var self = this;
 
-    var maxRequests = opts.maxRequests || 3;
-    var maxRequestsTime = opts.maxRequestsTime || 1000;
+    var maxReqsPerPeriod = opts.maxReqsPerPeriod || 30;
+    var periodMillis = opts.periodMillis || 1000;
 
     return function (req, res, next) {
 
@@ -57,7 +57,7 @@ Rate.prototype.limit = function rateLimit(opts) {
 
                     var old, error = null;
 
-                    if (length > maxRequests) {
+                    if (length > maxReqsPerPeriod) {
 
                         old = result.shift();  // get the oldest request time and examine it
 
@@ -65,8 +65,8 @@ Rate.prototype.limit = function rateLimit(opts) {
 
                         log.debug('diff:', diff);
 
-                        if (diff <= maxRequestsTime) {
-                            error = {error: 'Exceeded 50 requests per second for XRE events'};
+                        if (diff <= periodMillis) {
+                            error = {error: 'Exceeded ' + maxReqsPerPeriod + ' requests per second for XRE events'};
                         }
                     }
 
