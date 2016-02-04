@@ -15,6 +15,14 @@ function Rate(conf) {
 }
 
 
+Rate.errors = {
+
+    'NO_KEY': 'no key was available to find the request.',
+    'RATE_EXCEEDED': 'rate exceeeded',
+    'REDIS_ERROR': 'Redis error'
+
+};
+
 Rate.prototype.limit = function rateLimit(opts) {
 
     var maxReqsPerPeriod = opts.maxReqsPerPeriod || 30;
@@ -27,14 +35,14 @@ Rate.prototype.limit = function rateLimit(opts) {
         debug('ip address:', key);
 
         if (!key) {
-            next();
+            next({error: Rate.errors.NO_KEY});
         }
         else {
 
             this.client.get(key, (err, result) => {
 
                 if (err) {
-                    next(err);
+                    next({error: Rate.errors.REDIS_ERROR});
                 }
                 else if (result) {
 
@@ -68,8 +76,15 @@ Rate.prototype.limit = function rateLimit(opts) {
 
                     debug('result array:', result);
 
-                    this.client.set(key, JSON.stringify(result));
-                    next(error);
+                    this.client.set(key, JSON.stringify(result), err => {
+                        if (err) {
+                            next({error: Rate.errors.REDIS_ERROR});
+                        }
+                        else {
+                            this.client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
+                        }
+
+                    });
 
                 }
                 else {
