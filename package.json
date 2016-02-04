@@ -1,6 +1,6 @@
 {
   "name": "curtain",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "rate-limiter using Redis",
   "main": "index.js",
   "scripts": {
