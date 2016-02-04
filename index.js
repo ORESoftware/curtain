@@ -6,14 +6,12 @@
  */
 
 
-var log = require('baymax-logger');
+var debug = require('debug')('curtain:core');
 var Redis = require('ioredis');
 var ijson = require('idempotent-json');
 
 function Rate(conf) {
-
     this.client = new Redis(conf.redis);
-
 }
 
 
@@ -26,7 +24,7 @@ Rate.prototype.limit = function rateLimit(opts) {
 
         var key = String(req.ip);
 
-        log.debug('ip address:', key);
+        debug('ip address:', key);
 
         if (!key) {
             next();
@@ -61,21 +59,21 @@ Rate.prototype.limit = function rateLimit(opts) {
 
                         var diff = now - old;
 
-                        log.debug('diff:', diff);
+                        debug('diff:', diff);
 
                         if (diff <= periodMillis) {
                             error = {error: 'Exceeded ' + maxReqsPerPeriod + ' requests per second for XRE events'};
                         }
                     }
 
-                    log.debug('result array:', result);
+                    debug('result array:', result);
 
                     this.client.set(key, JSON.stringify(result));
                     next(error);
 
                 }
                 else {
-                    log.debug('setting key for first time.');
+                    debug('setting key for first time.');
                     this.client.set(key, JSON.stringify([Date.now()]));
                     next();
                 }

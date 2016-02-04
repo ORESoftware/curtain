@@ -1,6 +1,6 @@
 {
   "name": "curtain",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "rate-limiter using Redis",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,9 @@
   },
   "keywords": [
     "rate",
-    "limiter"
+    "limiter",
+    "redis",
+    ""
   ],
   "author": "ORESoftware",
   "license": "ISC",
@@ -16,5 +18,9 @@
     "baymax-logger": "^1.0.3",
     "idempotent-json": "^0.9.2",
     "ioredis": "^1.15.0"
+  },
+  "repository":{
+    "type":"git",
+    "url":"https://github.com/ORESoftware/curtain.git"
   }
 }
