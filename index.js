@@ -47,7 +47,7 @@ Rate.prototype.limit = function rateLimit(opts) {
                 }
                 else {
                     client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
-                    next(error);
+                    next(error); //if there's an error, send it on
                 }
             });
         }
