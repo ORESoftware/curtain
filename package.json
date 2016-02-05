@@ -15,12 +15,13 @@
   "author": "ORESoftware",
   "license": "ISC",
   "dependencies": {
+    "async": "^1.5.2",
     "baymax-logger": "^1.0.3",
     "idempotent-json": "^0.9.2",
     "ioredis": "^1.15.0"
   },
-  "repository":{
-    "type":"git",
-    "url":"https://github.com/ORESoftware/curtain.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ORESoftware/curtain.git"
   }
 }

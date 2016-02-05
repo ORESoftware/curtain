@@ -3,9 +3,17 @@
  */
 
 
+    ///////////////////////////////////////////////
+
 var Redis = require('ioredis');
 
 ///////////////////////////////////////////////////
+
+/*
+This is the simple version of this module that only rate limits requests by user/request id using Redis
+*/
+
+////////////////////////////////////////////////////
 
 
 function Rate(conf) {
@@ -17,17 +25,19 @@ function Rate(conf) {
             this.client = new Redis(conf.redis);
         }
     }
+    else{
+        throw new Error('No Redis configuration provided to Curtain module constructor');
+    }
 }
 
 
-Rate.errors = Rate.prototype.errors = Object.freeze({  //TODO Object.freeze may prevent syntax highlighting..
-
+Rate.errors = Rate.prototype.errors = Object.freeze({
     'NO_KEY': 'NO_KEY',
     'RATE_EXCEEDED': 'RATE_EXCEEDED',
     'REDIS_ERROR': 'REDIS_ERROR',
     'BAD_ARGUMENTS': 'BAD_ARGUMENTS'
-
 });
+
 
 Rate.prototype.limit = function rateLimit(opts) {
 
@@ -54,14 +64,23 @@ Rate.prototype.limit = function rateLimit(opts) {
 
         var key = String(req[identifier]);
 
-        if (!maxReqsPerPeriod || !periodMillis || !identifier || !key) {
+        if(!identifier || !key){
             next({
                 type: Rate.errors.BAD_ARGUMENTS,
-                msg: `either opts.maxReqsPerPeriod (${opts.maxReqsPerPeriod}) or opts.periodMillis (${opts.periodMillis}) was null/undefined or not a valid number`
+                msg: `opts.identifier given as (${opts.identifier}) could not produce a valid result from the req object`
             })
         }
-        else if (!key) {
-            next({type: Rate.errors.NO_KEY, 'msg': 'no key was available to find the request.'});
+        else if (!maxReqsPerPeriod) {
+            next({
+                type: Rate.errors.BAD_ARGUMENTS,
+                msg: `opts.periodMillis given as (${opts.periodMillis}) was null/undefined or not a valid number`
+            })
+        }
+        else if(!periodMillis){
+            next({
+                type: Rate.errors.BAD_ARGUMENTS,
+                msg: `opts.maxReqsPerPeriod given as (${opts.maxReqsPerPeriod}) was null/undefined or not a valid number`
+            })
         }
         else {
 
@@ -79,12 +98,11 @@ Rate.prototype.limit = function rateLimit(opts) {
                     result.push(now); //always push timestamp of latest request
 
                     var length = result.length;
-                    var old, error = null;
+                    var error = null;
 
                     if (length >= maxReqsPerPeriod) {
 
-                        old = result.shift();  // get the oldest request time and examine it
-                        var diff = now - old;
+                        var diff = now - result.shift();  // compare diff between now and oldest request time
 
                         if (diff <= periodMillis) {  //check if difference between newest request and oldest stored request is smaller than window
                             error = {
