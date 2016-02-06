@@ -66,21 +66,18 @@ app.use(rlm.limit({
     periodMillis: 3000,
     identifier: 'ip'
 
-}), function limitExceeded(err, req, res, next) {
+}), function curtainErrorOccurred(err, req, res, next) {
 
-        switch (err.type) {   //Express allows you to pass an object as first argument, not always an instanceof Error
-            case rlm.errors.RATE_EXCEEDED:
-                next(err);
-                break;
+        switch (err.type) {  
+            case rlm.errors.RATE_EXCEEDED:  //Rate has been exceeeded, do with this as you will
+                res.set('Retry-After',2);
+                return res.status(429).json({error: 'Request rate exceeded limit.'});
             case rlm.errors.REDIS_ERROR:
-                next(err);
-                break;
+                return next(err);
             case rlm.errors.NO_KEY:  // whatever you chose to use as your request unique identifier, there was a problem finding it on the request stream object
-                next(err);
-                break;
-            case rlm.errors.BAD_ARGUMENTS:  //if you have some crazy dynamicism in your project, then it's possible that you could pass bad args at runtime
-                next(err);
-                break;
+                return next(err);
+            case rlm.errors.BAD_ARGUMENTS:  //if you have some dynamicism in your project, then it's possible that you could pass bad args at some point in runtime
+                return next(err);
             default:
                 next(new Error('The NPM curtain library broke because it sent an unexpected error, what a POS'))
         }
@@ -88,9 +85,41 @@ app.use(rlm.limit({
 }, function requestIsOk(req, res, next) {
 
     next();
+    
 });
 ```
-
-
+<br />
+<br />
+<br />
 If you don't use the ip value of req.ip, (which you probably shouldn't) then you need to attach a value to req representing 
 the key to use for that user that is making the request.
+
+That might look like this:
+
+```javascript
+
+
+app.use(function(req,res,next){
+
+   req['foo-bar'] = 'some-unique-request-id-for-your-app';
+   next();
+
+}, rlm.limit({
+
+    maxReqsPerPeriod: 150,          // maximum number of requests that are allowed to occur during a window
+    periodMillis: 3000,             // the window period in milliseconds
+    identifier: 'foo-bar'           // string representing what value to read off the req object
+    
+
+}), function requestLimitExceeded(err, req, res, next) {
+
+    //some error occured, most likely an error representing that the request rate was exceeded by the latest request
+    next(err);
+
+}, function requestIsOk(req, res, next) {
+
+    //the new request is within limits
+    next();
+});
+
+```
