@@ -7,6 +7,8 @@ a request has exceeed a threshold and should be rejected with a HTTP 429 or othe
 
 ## Usage
 
+(See the /test folder in the project for more examples)
+
 
 ```javascript
 
@@ -55,8 +57,8 @@ var rlm = new RateLimiter({
 });
 ```
 
-Note: This library calls your error handling middleware. This library will not throw any errors. When the rate is exceeded by the request 
-it will call your next error handling middleware; this same middleware will also be called if any other types of errors occur. 
+Note: This library calls your error handling middleware. When the rate limit is exceeded by the newest request 
+it will call your promixate error handling middleware; this same middleware will also be called if any other types of errors occur. 
 All errors (whether they are Redis errors or rate limit errors) should be handled by you like this:
 
 ```javascript

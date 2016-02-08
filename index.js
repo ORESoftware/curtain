@@ -46,6 +46,14 @@ Rate.errors = Rate.prototype.errors = Object.freeze({
     'BAD_ARGUMENTS': 'BAD_ARGUMENTS'
 });
 
+Rate.opts = Rate.prototype.opts = Object.freeze({
+    'maxReqsPerPeriod': 'maxReqsPerPeriod',
+    'periodMillis': 'periodMillis',
+    'excludeRoutes': 'excludeRoutes',
+    'includeRoutes': 'includeRoutes',
+    'router': 'router',
+});
+
 
 function skip(req, res, next) {
     console.log('req with path:', req.path, 'was set to skip....');
@@ -68,10 +76,7 @@ Rate.prototype.limit = function rateLimit(opts) {
     var router, maxReqsPerPeriod, periodMillis, identifier, excludeRoutes, includeRoutes;
 
     try {
-        if (opts.app && opts.router) {
-            throw new Error('You passed both opts.app and opts.router, please choose one only.');
-        }
-        router = opts.router || opts.app;
+        router = opts.router;  //either app or what not
         maxReqsPerPeriod = opts.maxReqsPerPeriod ? parseInt(opts.maxReqsPerPeriod) : null;
         periodMillis = opts.periodMillis ? parseInt(opts.periodMillis) : null;
         identifier = opts.identifier ? String(opts.identifier) : null;
@@ -132,10 +137,10 @@ Rate.prototype.limit = function rateLimit(opts) {
 
             self.client.set(key, value, err => {
                 if (err) {
-                    if(error){
+                    if (error) {
                         next(error);
                     }
-                    else{
+                    else {
                         next({type: Rate.errors.REDIS_ERROR, msg: err});
                     }
                 }

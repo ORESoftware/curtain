@@ -22,5 +22,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/ORESoftware/curtain.git"
+  },
+  "devDependencies": {
+    "express": "^4.13.4",
+    "request": "^2.69.0",
+    "suman": "^0.9.9"
   }
 }
