@@ -9,10 +9,7 @@ var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
 var Test = suman.Test(module, 'suman.conf.js');
 
 
-Test.describe('@TestServer1', {
-
-
-},['ioredis', 'request'], function () {
+Test.describe('@TestServer1', function () {
 
 
     /////////////////////////////////////
