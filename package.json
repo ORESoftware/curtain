@@ -1,6 +1,6 @@
 {
   "name": "curtain",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "rate-limiter using Redis",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "async": "^1.5.2",
+    "express": "^4.13.4",
     "ioredis": "^1.15.0"
   },
   "repository": {
