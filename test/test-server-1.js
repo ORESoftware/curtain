@@ -4,20 +4,32 @@
 
 
 //var suman = require('suman');
-var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
+var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
+//var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
 var Test = suman.Test(module, 'suman.conf.js');
 
-Test.describe('@TestServer1', function () {
+
+Test.describe('@TestServer1', {
+
+
+},['ioredis', 'request'], function () {
+
+
+    /////////////////////////////////////
 
     var request = require('request');
-
     var server = null;
+
+
+    ////////////////////////////////////
+
 
     this.before('(start redis)', function (done) {
         done();
     });
 
     this.before('(stop any server running)', function (done) {
+
         done();
     });
 
