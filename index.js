@@ -51,7 +51,7 @@ Rate.opts = Rate.prototype.opts = Object.freeze({
     'periodMillis': 'periodMillis',
     'excludeRoutes': 'excludeRoutes',
     'includeRoutes': 'includeRoutes',
-    'router': 'router',
+    'router': 'router'
 });
 
 

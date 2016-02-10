@@ -3,14 +3,23 @@
  */
 
 
+////////////* this lib *////////////
+
+var RateLimiter = require('../../');
+
+///////////////////////////////////
+
+
 var http = require('http');
 var express = require('express');
+
+///////////////////////////////////
+
 
 var app = express();
 app.set('port', 9999);
 
 
-var RateLimiter = require('../../');
 
 var rlm = new RateLimiter({
     redis: {
@@ -35,9 +44,9 @@ app.use(rlm.limit({
 
 
 app.use(function (req, res, next) {
-
-    res.json({error: 'this code should not be reached.'});
-
+    res.json({error: 'this code should never be reached.'});
 });
+
+
 
 module.exports = http.createServer(app).listen(app.get('port'));
