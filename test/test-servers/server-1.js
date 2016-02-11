@@ -9,7 +9,6 @@ var RateLimiter = require('../../');
 
 ///////////////////////////////////
 
-
 var http = require('http');
 var express = require('express');
 
@@ -34,16 +33,14 @@ app.use(rlm.limit({
     maxReqsPerPeriod: 10
 
 }), function (err, req, res, next) {
-
     res.json(err);
 
 }, function (req, res, next) {
-
     res.json({success: true});
 });
 
 
-app.use(function (req, res, next) {
+app.use(function (req, res) {
     res.json({error: 'this code should never be reached.'});
 });
 

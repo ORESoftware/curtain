@@ -8,6 +8,7 @@
 var assert = require('assert');
 var Redis = require('ioredis');
 var pathToRegexp = require('path-to-regexp');
+var parseUrl = require('parseurl');
 
 ///////////////////////////////////////////////////
 
@@ -52,15 +53,18 @@ Rate.opts = Rate.prototype.opts = Object.freeze({
     'periodMillis': 'periodMillis',
     'excludeRoutes': 'excludeRoutes',
     'includeRoutes': 'includeRoutes',
-    'log':'log'
+    'log': 'log'
 });
 
 
 Rate.prototype.limit = function rateLimit(opts) {
 
-    var keys = [];
-    var excludeRegexes = [];
-    var includeOnlyRegexes = [];
+    //var keys = [];
+    //var excludeRegexes = [];
+    //var includeOnlyRegexes = [];
+
+    var excludeRoutesRegexp = null;
+    var includeOnlyRoutesRegexp = null;
 
     var self = this;
     var isIncludeOnly = false;
@@ -86,20 +90,27 @@ Rate.prototype.limit = function rateLimit(opts) {
             assert(Array.isArray(excludeRoutes));
         }
 
-        (excludeRoutes || []).forEach(function (routeRegex) {
-            excludeRegexes.push(pathToRegexp.compile(routeRegex));
-        });
+        //(excludeRoutes || []).forEach(function (routeRegex) {
+        //    excludeRegexes.push(pathToRegexp.compile(routeRegex));
+        //});
+        //
+        //(includeOnlyRoutes || []).forEach(function (routeRegex) {
+        //    includeOnlyRegexes.push(pathToRegexp.compile(routeRegex));
+        //});
 
-        (includeOnlyRoutes || []).forEach(function (routeRegex) {
-            includeOnlyRegexes.push(pathToRegexp.compile(routeRegex));
-        });
+        if (excludeRoutes && excludeRoutes.length > 0) {
+            excludeRoutesRegexp = pathToRegexp(excludeRoutes);
+        }
+        if (includeOnlyRoutes && includeOnlyRoutes.length > 0) {
+            includeOnlyRoutesRegexp = pathToRegexp(includeOnlyRoutes);
+        }
 
 
     }
     catch (err) {
         return (req, res, next) => {
 
-            if(logFunction){
+            if (logFunction) {
                 logFunction(err.stack);
             }
 
@@ -113,46 +124,28 @@ Rate.prototype.limit = function rateLimit(opts) {
 
     return (req, res, next) => {
 
-        var matchesInclude = false;
 
+        if (isIncludeOnly && includeOnlyRoutesRegexp) {
+            if (!includeOnlyRoutesRegexp.test(parseUrl(req).pathname)) {
 
-        if (isIncludeOnly) {
-            for (var i = 0; i < includeOnlyRegexes; i++) {
-                var regex = includeOnlyRegexes[i];
-                if (/*regex.test(req.path)*/String(req.path).match(regex)) {
-                    matchesInclude = true;
-                    break;
-                }
-            }
-            if(!matchesInclude){
-                if(logFunction){
+                if (logFunction) {
                     logFunction('req with url:', req.path, 'was *skipped* by curtain because it was not *included*.');
                 }
-
                 //if we have an include only list, and there is no match - the route is already excluded, don't need to check exclude list
                 return next();
             }
         }
 
-        var matchesExclude = false;
 
-        for(var j = 0; j < excludeRegexes; j++){
-            var regex = excludeRegexes[j];
-            if (/*regex.test(req.path)*/ String(req.path).match(regex)) {
-                matchesExclude = true;
-                break;
-            }
-        }
-
-        if(matchesExclude){
-            if(logFunction){
+        if (excludeRoutesRegexp && excludeRoutesRegexp.test(parseUrl(req).pathname)) {
+            if (logFunction) {
                 logFunction('req with url:', req.path, 'was *skipped* by curtain because it was in the exclude list.');
             }
 
             return next();
         }
 
-        if(logFunction){
+        if (logFunction) {
             logFunction('req with url:', req.path, 'was *processed* by curtain.');
         }
 
@@ -160,7 +153,7 @@ Rate.prototype.limit = function rateLimit(opts) {
         req.curtained = req.curtained ? req.curtained++ : 1;
 
         if (req.curtained > 1 && this.verbose) {
-            if(logFunction){
+            if (logFunction) {
                 logFunction('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
             }
         }
