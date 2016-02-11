@@ -7,7 +7,6 @@
 
 var assert = require('assert');
 var Redis = require('ioredis');
-var pathToRegexp = require('path-to-regexp');
 
 ///////////////////////////////////////////////////
 
@@ -52,57 +51,50 @@ Rate.opts = Rate.prototype.opts = Object.freeze({
     'periodMillis': 'periodMillis',
     'excludeRoutes': 'excludeRoutes',
     'includeRoutes': 'includeRoutes',
-    'log':'log'
+    'router': 'router'
 });
+
+
+function skip(req, res, next) {
+    console.log('req with path:', req.path, 'was set to skip....');
+    req.skipCurtain = true;
+    next();
+}
+
+function only(req, res, next) {
+    console.log('req with path:', req.path, 'was set to only....');
+    req.onlyCurtain = true;
+    next();
+}
 
 
 Rate.prototype.limit = function rateLimit(opts) {
 
-    var keys = [];
-    var excludeRegexes = [];
-    var includeOnlyRegexes = [];
-
     var self = this;
     var isIncludeOnly = false;
 
-    var maxReqsPerPeriod, logFunction, periodMillis, identifier, excludeRoutes, includeOnlyRoutes;
+    var router, maxReqsPerPeriod, periodMillis, identifier, excludeRoutes, includeRoutes;
 
     try {
-        //router = opts.router;  //either app or what not
-        logFunction = opts.log || null;
+        router = opts.router;  //either app or what not
         maxReqsPerPeriod = opts.maxReqsPerPeriod ? parseInt(opts.maxReqsPerPeriod) : null;
         periodMillis = opts.periodMillis ? parseInt(opts.periodMillis) : null;
         identifier = opts.identifier ? String(opts.identifier) : null;
         excludeRoutes = opts.excludeRoutes ? JSON.parse(JSON.stringify(opts.excludeRoutes)) : null;
-        includeOnlyRoutes = opts.includeRoutes ? JSON.parse(JSON.stringify(opts.includeRoutes)) : null;
+        includeRoutes = opts.includeRoutes ? JSON.parse(JSON.stringify(opts.includeRoutes)) : null;
 
-        if (includeOnlyRoutes) {
-            assert(Array.isArray(includeOnlyRoutes));
-            if (includeOnlyRoutes.length > 0) {
-                isIncludeOnly = true;
-            }
+        if (includeRoutes) {
+            assert(router.use);
+            assert(Array.isArray(includeRoutes));
         }
         if (excludeRoutes) {
+            assert(router.use);
             assert(Array.isArray(excludeRoutes));
         }
-
-        (excludeRoutes || []).forEach(function (routeRegex) {
-            excludeRegexes.push(pathToRegexp.compile(routeRegex));
-        });
-
-        (includeOnlyRoutes || []).forEach(function (routeRegex) {
-            includeOnlyRegexes.push(pathToRegexp.compile(routeRegex));
-        });
-
 
     }
     catch (err) {
         return (req, res, next) => {
-
-            if(logFunction){
-                logFunction(err.stack);
-            }
-
             next({
                 type: Rate.errors.BAD_ARGUMENTS,
                 error: err
@@ -110,59 +102,39 @@ Rate.prototype.limit = function rateLimit(opts) {
         }
     }
 
+    //NPM "path-to-regexp" lib as possible alternative
+
+    (excludeRoutes || []).forEach(function (route) {
+        router.use(route, skip);
+    });
+
+    (includeRoutes || []).forEach(function (route) {
+        isIncludeOnly = true;
+        router.use(route, only);
+    });
 
     return (req, res, next) => {
 
-        var matchesInclude = false;
-
-
-        if (isIncludeOnly) {
-            for (var i = 0; i < includeOnlyRegexes; i++) {
-                var regex = includeOnlyRegexes[i];
-                if (/*regex.test(req.path)*/String(req.path).match(regex)) {
-                    matchesInclude = true;
-                    break;
-                }
-            }
-            if(!matchesInclude){
-                if(logFunction){
-                    logFunction('req with url:', req.path, 'was *skipped* by curtain because it was not *included*.');
-                }
-
-                //if we have an include only list, and there is no match - the route is already excluded, don't need to check exclude list
-                return next();
-            }
+        if (req.skipCurtain === true) {
+            console.log('req with url:', req.path, 'was *skipped* by curtain.');
+            delete req.skipCurtain; //so that other curtain limiters can work correctly
+            return next();
+        }
+        else {
+            console.log('req with url:', req.path, 'was *processed* by curtain.');
         }
 
-        var matchesExclude = false;
-
-        for(var j = 0; j < excludeRegexes; j++){
-            var regex = excludeRegexes[j];
-            if (/*regex.test(req.path)*/ String(req.path).match(regex)) {
-                matchesExclude = true;
-                break;
-            }
-        }
-
-        if(matchesExclude){
-            if(logFunction){
-                logFunction('req with url:', req.path, 'was *skipped* by curtain because it was in the exclude list.');
-            }
-
+        if (isIncludeOnly && !req.onlyCurtain) {
+            console.log('req with url:', req.path, 'was *skipped* by curtain because it was not *included*.');
             return next();
         }
 
-        if(logFunction){
-            logFunction('req with url:', req.path, 'was *processed* by curtain.');
-        }
-
+        delete req.onlyCurtain;  //delete this property so that it doesn't interfere with other curtain limiters
 
         req.curtained = req.curtained ? req.curtained++ : 1;
 
         if (req.curtained > 1 && this.verbose) {
-            if(logFunction){
-                logFunction('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
-            }
+            console.log('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
         }
 
 

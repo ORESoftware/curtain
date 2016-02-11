@@ -16,7 +16,8 @@
   "license": "ISC",
   "dependencies": {
     "async": "^1.5.2",
-    "ioredis": "^1.15.0"
+    "ioredis": "^1.15.0",
+    "path-to-regexp": "^1.2.1"
   },
   "repository": {
     "type": "git",
