@@ -6,7 +6,7 @@
 //var suman = require('suman');
 //var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
 var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
-var Test = suman.Test(module, 'suman.conf.js');
+var Test = suman.Test(module);
 
 
 Test.describe('@TestServer1', ['delay'], function (delay) {
