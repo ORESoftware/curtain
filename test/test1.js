@@ -4,35 +4,25 @@
 
 
 //var suman = require('suman');
-//var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
 var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
-var Test = suman.Test(module);
+//var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
+var Test = suman.init(module, 'suman.conf.js');
 
 
-Test.describe('@TestServer1', ['delay'], function (delay) {
+Test.describe('@TestServer1', [], function (delay, request, ioredis, didj) {
 
-
-    /////////////////////////////////////
-
-    var request = require('request');
     var server = null;
 
-
-    ////////////////////////////////////
-
-    console.log('We are delayed...');
-    setTimeout(function(){
-        console.log('...delay is over!');
+    setTimeout(function () {
         delay();
-    },1000);
+    }, 1000);
 
 
-    this.before('(start redis)', function (done) {
+    this.before('(start redis)', function (done, a, t) {
         done();
     });
 
-    this.before('(stop any server running)', function (done) {
-
+    this.before('(stop any server running)', function (a, t, b, done) {
         done();
     });
 
@@ -44,6 +34,8 @@ Test.describe('@TestServer1', ['delay'], function (delay) {
     });
 
     this.it('tests server', function (t, done) {
+
+        console.log('t is:',t);
 
         request('http://localhost:9999', function (err, resp, body) {
 
