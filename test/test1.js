@@ -6,7 +6,8 @@
 //var suman = require('suman');
 var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
 //var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
-var Test = suman.Test(module, 'suman.conf.js');
+
+var Test = suman.init(module, 'suman.conf.js');
 
 
 Test.describe('@TestServer1', [], function (delay, request, ioredis, didj) {
@@ -35,11 +36,7 @@ Test.describe('@TestServer1', [], function (delay, request, ioredis, didj) {
 
     this.it('tests server', function (t, done) {
 
-        console.log('t is:',t);
-
         request('http://localhost:9999', function (err, resp, body) {
-
-            console.log('body:', body);
 
             if (err) {
                 done(err);
