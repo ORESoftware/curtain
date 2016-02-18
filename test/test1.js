@@ -4,9 +4,12 @@
 
 
 //var suman = require('suman');
+
 var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
 //var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
 
+//var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
+//var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
 var Test = suman.init(module, 'suman.conf.js');
 
 
