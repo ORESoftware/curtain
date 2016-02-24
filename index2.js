@@ -59,70 +59,54 @@ Rate.opts = Rate.prototype.opts = Object.freeze({
 
 Rate.prototype.limit = function rateLimit(opts) {
 
-    //var keys = [];
-    //var excludeRegexes = [];
-    //var includeOnlyRegexes = [];
-
     var excludeRoutesRegexp = null;
     var includeOnlyRoutesRegexp = null;
 
     var self = this;
     var isIncludeOnly = false;
 
-    var maxReqsPerPeriod, logFunction, periodMillis, identifier, excludeRoutes, includeOnlyRoutes;
+    var req, currentPath, maxReqsPerPeriod, logFunction, periodMillis, identifier, excludeRoutes, includeOnlyRoutes;
 
-    try {
-        //router = opts.router;  //either app or what not
-        logFunction = opts.log || null;
-        maxReqsPerPeriod = opts.maxReqsPerPeriod ? parseInt(opts.maxReqsPerPeriod) : null;
-        periodMillis = opts.periodMillis ? parseInt(opts.periodMillis) : null;
-        identifier = opts.identifier ? String(opts.identifier) : null;
-        excludeRoutes = opts.excludeRoutes ? JSON.parse(JSON.stringify(opts.excludeRoutes)) : null;
-        includeOnlyRoutes = opts.includeRoutes ? JSON.parse(JSON.stringify(opts.includeRoutes)) : null;
+    return new Promise(function (resolve, reject) {
 
-        if (includeOnlyRoutes) {
-            assert(Array.isArray(includeOnlyRoutes));
-            if (includeOnlyRoutes.length > 0) {
-                isIncludeOnly = true;
+        try {
+            req = opts.req;
+            logFunction = opts.log || null;
+            maxReqsPerPeriod = opts.maxReqsPerPeriod ? parseInt(opts.maxReqsPerPeriod) : null;
+            periodMillis = opts.periodMillis ? parseInt(opts.periodMillis) : null;
+            identifier = opts.identifier ? String(opts.identifier) : null;
+            excludeRoutes = opts.excludeRoutes ? JSON.parse(JSON.stringify(opts.excludeRoutes)) : null;
+            includeOnlyRoutes = opts.includeRoutes ? JSON.parse(JSON.stringify(opts.includeRoutes)) : null;
+
+            if (includeOnlyRoutes) {
+                assert(Array.isArray(includeOnlyRoutes));
+                if (includeOnlyRoutes.length > 0) {
+                    isIncludeOnly = true;
+                }
             }
-        }
-        if (excludeRoutes) {
-            assert(Array.isArray(excludeRoutes));
-        }
+            if (excludeRoutes) {
+                assert(Array.isArray(excludeRoutes));
+            }
 
-        //(excludeRoutes || []).forEach(function (routeRegex) {
-        //    excludeRegexes.push(pathToRegexp.compile(routeRegex));
-        //});
-        //
-        //(includeOnlyRoutes || []).forEach(function (routeRegex) {
-        //    includeOnlyRegexes.push(pathToRegexp.compile(routeRegex));
-        //});
+            if (excludeRoutes && excludeRoutes.length > 0) {
+                excludeRoutesRegexp = pathToRegexp(excludeRoutes);
+            }
+            if (includeOnlyRoutes && includeOnlyRoutes.length > 0) {
+                includeOnlyRoutesRegexp = pathToRegexp(includeOnlyRoutes);
+            }
 
-        if (excludeRoutes && excludeRoutes.length > 0) {
-            excludeRoutesRegexp = pathToRegexp(excludeRoutes);
         }
-        if (includeOnlyRoutes && includeOnlyRoutes.length > 0) {
-            includeOnlyRoutesRegexp = pathToRegexp(includeOnlyRoutes);
-        }
-
-
-    }
-    catch (err) {
-        return (req, res, next) => {
+        catch (err) {
 
             if (logFunction) {
                 logFunction(err.stack);
             }
 
-            next({
+            return reject({
                 type: Rate.errors.BAD_ARGUMENTS,
                 error: err
             });
         }
-    }
-
-
-    return (req, res, next) => {
 
 
         if (isIncludeOnly && includeOnlyRoutesRegexp) {
@@ -132,7 +116,7 @@ Rate.prototype.limit = function rateLimit(opts) {
                     logFunction('req with url:', req.path, 'was *skipped* by curtain because it was not *included*.');
                 }
                 //if we have an include only list, and there is no match - the route is already excluded, don't need to check exclude list
-                return next();
+                return resolve({rateExceeded: false, routeExcluded: true});
             }
         }
 
@@ -142,7 +126,7 @@ Rate.prototype.limit = function rateLimit(opts) {
                 logFunction('req with url:', req.path, 'was *skipped* by curtain because it was in the exclude list.');
             }
 
-            return next();
+            return resolve({rateExceeded: false, routeExcluded: true});
         }
 
         if (logFunction) {
@@ -150,9 +134,9 @@ Rate.prototype.limit = function rateLimit(opts) {
         }
 
 
-        req.curtained = req.curtained ? req.curtained++ : 1;
+        req.__curtained = req.__curtained ? req.__curtained++ : 1;
 
-        if (req.curtained > 1 && this.verbose) {
+        if (req.__curtained > 1 && this.verbose) {
             if (logFunction) {
                 logFunction('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
             }
@@ -163,11 +147,11 @@ Rate.prototype.limit = function rateLimit(opts) {
 
             self.client.set(key, value, err => {
                 if (err && !error) {
-                    next({type: Rate.errors.REDIS_ERROR, error: err});
+                    reject({type: Rate.errors.REDIS_ERROR, error: err});
                 }
                 else {
                     self.client.expire(key, Math.ceil(periodMillis / 1000) + 5); // expire the key at least 5 seconds after
-                    next(error); //if there's an error, send it on
+                    error ? reject(error) : resolve({rateExceeded: false, routeExcluded: false});
                 }
             });
         }
@@ -175,19 +159,19 @@ Rate.prototype.limit = function rateLimit(opts) {
         var key = String(req[identifier]);
 
         if (!identifier || !key) {
-            next({
+            return reject({
                 type: Rate.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.identifier given as (${opts.identifier}) could not produce a valid result from the req object`)
             })
         }
         else if (!maxReqsPerPeriod) {
-            next({
+            return reject({
                 type: Rate.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.periodMillis given as (${opts.periodMillis}) was null/undefined or not a valid number`)
             })
         }
         else if (!periodMillis) {
-            next({
+            return reject({
                 type: Rate.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.maxReqsPerPeriod given as (${opts.maxReqsPerPeriod}) was null/undefined or not a valid number`)
             })
@@ -196,7 +180,7 @@ Rate.prototype.limit = function rateLimit(opts) {
 
             this.client.get(key, (err, result) => {
                 if (err) {
-                    next({
+                    reject({
                         type: Rate.errors.REDIS_ERROR,
                         error: err
                     });
@@ -232,12 +216,9 @@ Rate.prototype.limit = function rateLimit(opts) {
                     // setting new value in redis
                     redisSet(null, JSON.stringify([Date.now()]));
                 }
-
             });
         }
-
-    }
-
+    });
 
 };
 
