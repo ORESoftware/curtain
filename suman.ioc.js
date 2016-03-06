@@ -1,4 +1,31 @@
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { return step("next", value); }, function (err) { return step("throw", err); }); } } return step("next"); }); }; }
+function _asyncToGenerator(fn) {
+    return function () {
+        var gen = fn.apply(this, arguments);
+        return new Promise(function (resolve, reject) {
+            function step(key, arg) {
+                try {
+                    var info = gen[key](arg);
+                    var value = info.value;
+                } catch (error) {
+                    reject(error);
+                    return;
+                }
+                if (info.done) {
+                    resolve(value);
+                } else {
+                    return Promise.resolve(value).then(function (value) {
+                        return step("next", value);
+                    }, function (err) {
+                        return step("throw", err);
+                    });
+                }
+            }
+
+            return step("next");
+        });
+    };
+}
+
 
 /**
  * Created by amills001c on 2/8/16.
@@ -9,12 +36,12 @@ var async = require('async');
 function returnsPromise() {
     return new Promise(function (resolve) {
         setTimeout(function () {
-            resolve({ temp: 'A' });
+            resolve({temp: 'A'});
         }, 1000);
     });
 }
 
-module.exports = function loadAsyncDepsForSuman(suman, cb) {
+module.exports = suman => {
 
     suman.configure({
 
@@ -38,7 +65,7 @@ module.exports = function loadAsyncDepsForSuman(suman, cb) {
 
             return new Promise(function (resolve) {
                 setTimeout(function () {
-                    resolve({ temp: 'A' });
+                    resolve({temp: 'A'});
                 }, 1000);
             });
         },

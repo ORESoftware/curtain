@@ -23,7 +23,7 @@ var parseUrl = require('parseurl');
 ////////////////////////////////////////////////////
 
 
-function Rate(conf) {
+function Curtain(conf) {
 
     this.verbose = conf.verbose !== false; //default to true
 
@@ -39,14 +39,14 @@ function Rate(conf) {
 }
 
 
-Rate.errors = Rate.prototype.errors = Object.freeze({
+Curtain.errors = Curtain.prototype.errors = Object.freeze({
     'NO_KEY': 'NO_KEY',
     'RATE_EXCEEDED': 'RATE_EXCEEDED',
     'REDIS_ERROR': 'REDIS_ERROR',
     'BAD_ARGUMENTS': 'BAD_ARGUMENTS'
 });
 
-Rate.opts = Rate.prototype.opts = Object.freeze({
+Curtain.opts = Curtain.prototype.opts = Object.freeze({
     'maxReqsPerPeriod': 'maxReqsPerPeriod',
     'periodMillis': 'periodMillis',
     'excludeRoutes': 'excludeRoutes',
@@ -55,7 +55,7 @@ Rate.opts = Rate.prototype.opts = Object.freeze({
 });
 
 
-Rate.prototype.limit = function rateLimit(opts) {
+Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
 
     var excludeRoutesRegexp = null;
     var includeOnlyRoutesRegexp = null;
@@ -100,7 +100,7 @@ Rate.prototype.limit = function rateLimit(opts) {
             }
 
             return reject({
-                type: Rate.errors.BAD_ARGUMENTS,
+                type: Curtain.errors.BAD_ARGUMENTS,
                 error: err
             });
         }
@@ -151,7 +151,7 @@ Rate.prototype.limit = function rateLimit(opts) {
             self.client.set(key, value, err => {
                 if (err && !error) {
                     reject({
-                        type: Rate.errors.REDIS_ERROR,
+                        type: Curtain.errors.REDIS_ERROR,
                         error: err
                     });
                 } else {
@@ -168,17 +168,17 @@ Rate.prototype.limit = function rateLimit(opts) {
 
         if (!identifier || !key) {
             return reject({
-                type: Rate.errors.BAD_ARGUMENTS,
+                type: Curtain.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.identifier given as (${opts.identifier}) could not produce a valid result from the req object`)
             })
         } else if (!maxReqsPerPeriod) {
             return reject({
-                type: Rate.errors.BAD_ARGUMENTS,
+                type: Curtain.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.periodMillis given as (${opts.periodMillis}) was null/undefined or not a valid number`)
             })
         } else if (!periodMillis) {
             return reject({
-                type: Rate.errors.BAD_ARGUMENTS,
+                type: Curtain.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.maxReqsPerPeriod given as (${opts.maxReqsPerPeriod}) was null/undefined or not a valid number`)
             })
         } else {
@@ -186,7 +186,7 @@ Rate.prototype.limit = function rateLimit(opts) {
             self.client.get(key, (err, result) => {
                 if (err) {
                     reject({
-                        type: Rate.errors.REDIS_ERROR,
+                        type: Curtain.errors.REDIS_ERROR,
                         error: err
                     });
                 } else if (result) {
@@ -207,7 +207,7 @@ Rate.prototype.limit = function rateLimit(opts) {
 
                         if (diff <= periodMillis) { //check if difference between newest request and oldest stored request is smaller than window
                             error = {
-                                type: Rate.errors.RATE_EXCEEDED,
+                                type: Curtain.errors.RATE_EXCEEDED,
                                 error: new Error('Exceeded ' + maxReqsPerPeriod + ' requests per time period.')
                             };
                         }
@@ -226,4 +226,4 @@ Rate.prototype.limit = function rateLimit(opts) {
 };
 
 
-module.exports = Rate;
+module.exports = Curtain;
