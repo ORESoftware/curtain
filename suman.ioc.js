@@ -42,7 +42,7 @@ module.exports = function loadAsyncDepsForSuman(suman, cb) {
                 }, 1000);
             });
         },
-        'mark': function () {
+        'markj': function () {
             var ref = _asyncToGenerator(function* () {
                 return yield returnsPromise();
             });
