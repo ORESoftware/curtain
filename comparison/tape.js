@@ -14,4 +14,5 @@ test('timing test', function (t) {
     setTimeout(function () {
         t.equal(Date.now() - start, 100);
     }, 100);
+
 });

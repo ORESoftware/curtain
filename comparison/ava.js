@@ -3,7 +3,7 @@
  */
 
 
-var test = require('ava').test;
+var test = require('ava');
 
 test(t => {
 

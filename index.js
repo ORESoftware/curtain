@@ -22,7 +22,6 @@ var parseUrl = require('parseurl');
 
 ////////////////////////////////////////////////////
 
-
 function Curtain(conf) {
 
     this.verbose = conf.verbose !== false; //default to true
