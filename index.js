@@ -139,7 +139,7 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
 
         req.__curtained = req.__curtained ? req.__curtained++ : 1;
 
-        if (req.__curtained > 1 && this.verbose) {
+        if (req.__curtained > 1 && self.verbose) {
             if (logFunction) {
                 logFunction('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
             }
@@ -167,17 +167,17 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
         var key = String(req[identifier]);
 
         if (!identifier || !key) {
-            return reject({
+             reject({
                 type: Curtain.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.identifier given as (${opts.identifier}) could not produce a valid result from the req object`)
             })
         } else if (!maxReqsPerPeriod) {
-            return reject({
+             reject({
                 type: Curtain.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.periodMillis given as (${opts.periodMillis}) was null/undefined or not a valid number`)
             })
         } else if (!periodMillis) {
-            return reject({
+             reject({
                 type: Curtain.errors.BAD_ARGUMENTS,
                 error: new Error(`opts.maxReqsPerPeriod given as (${opts.maxReqsPerPeriod}) was null/undefined or not a valid number`)
             })
