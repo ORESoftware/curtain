@@ -6,12 +6,9 @@ This library is designed to make a yes/no decision about whether to admit a requ
 a request has exceeed a threshold and should be rejected with a HTTP 429 or other relevant HTTP response.
 
 <br />
-<br />
-
 
 [![NPM](https://nodei.co/npm/curtain.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/curtain/)
 
-<br />
 <br />
 
 ## Usage
