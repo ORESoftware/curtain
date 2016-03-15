@@ -5,18 +5,19 @@
 
 ///////////////////////////////////////////////
 
-var assert = require('assert');
-var Redis = require('ioredis');
-var pathToRegexp = require('path-to-regexp');
-var parseUrl = require('parseurl');
+const assert = require('assert');
+const Redis = require('ioredis');
+const pathToRegexp = require('path-to-regexp');
+const parseUrl = require('parseurl');
 
 ///////////////////////////////////////////////////
 
 /*
  This is the simple version of this module that only rate limits requests by user/request id using Redis
 
+ TODO: allow ability to block users if rate is exceeded by far too much or too many consecutive times
  TODO: need to allow for rate limiting on particular routes
- e.g., if the user has two different routes for which they want a different rate limit, then the Redis key has to be different
+ => e.g., if the user has two different routes for which they want a different rate limit, then the Redis key has to be different
 
  */
 
