@@ -29,7 +29,7 @@ var rlm = new RateLimiter({
 });
 
 
-module.exports = function(req, res, next) {
+module.exports = function rateLimitMiddleware(req, res, next) {
 
     rlm.limit({
 
