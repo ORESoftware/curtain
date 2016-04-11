@@ -36,7 +36,7 @@ module.exports = function(req, res, next) {
         req: req,
         log: log.debug.bind(log),
         excludeRoutes: ['/v1/posts/by_id/:id/add_upvote', '/v1/posts/by_id/:id/remove_upvote', '/v1/handle/blacklisted'],
-        maxReqsPerPeriod: 30,
+        maxReqsPerPeriod: 15,
         periodMillis: 2000,
         identifier: 'ip'
 
@@ -48,7 +48,7 @@ module.exports = function(req, res, next) {
             next();
         }
 
-    }).catch(function(err) {
+    }, function(err) {
 
         switch (err.type) { 
             case rlm.errors.REDIS_ERROR:
