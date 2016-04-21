@@ -1,78 +1,47 @@
-
-const assert = require('assert');
-const suman = require('suman');
-
-var Test = suman.init(module);
+/**
+ * Created by amills001c on 4/13/16.
+ */
 
 
-Test.describe('SimpleExampleA', function () {
+const suman = require('/Users/amills001c/WebstormProjects/oresoftware/suman');
+const Test = suman.init(module,{});
 
-    var config = null;
 
-    this.beforeEach(function () {
-        if (config) {
-            throw new Error('config should be null before each test :)');
-        }
+Test.describe('SimpleTest', function (assert, fs, os) {
+
+
+    this.it('tests-arrays', function () {
+        assert.equal(typeof [], 'object');
     });
 
-    this.afterEach(function () {
-        config = null;
-    });
 
-    this.it('does not throw', function () {
+    ['describe', 'it', 'before', 'after', 'afterEach'].forEach(item => {
 
-        assert.doesNotThrow(function () {  //prob unnecessary, but for clarity
-            config = require('domain')
+        this.it('tests-suman suite block for: ' + item, function () {
+            assert(this.hasOwnProperty(item));
         });
 
     });
 
-
-    this.it('does throw part 1', function () {
-
-        assert.throws(function () {
-            config = require('univ-config')(module, 'some string without an asterisk', 'test/test-config');
-        }, 'Whoops');
-
-    });
-
-    this.it('does throw part 2', function () {
-
-        assert.throws(function () {
-            config = require('univ-config')(module, '***', 'test/test-config/bad-path');
-        }, 'Whoops');
-
+    this.it('Check that Test.file is equiv. to module.filename', {timeout: 20}, done => {
+        setTimeout(function () {
+            assert(module.filename === Test.file);
+            done();
+        }, 18);
     });
 
 
-    this.it('does throw part 3', function () {
+    this.it('reads this file, pipes to /dev/null', function (fail, pass) {
 
-        assert.throws(function () {
-            config = require('univ-config')(module, '***', 'test/test-config/bad-path');
-        }, 'Whoops');
+        const destFile = os.hostname === 'win32' ? process.env.USERPROFILE + '/temp' : '/dev/null';
 
-    });
-
-
-    this.it('verify config values', function () {
-
-        config = {
-            prop1: 1,
-            prop2: {
-                foo: 'bar'
-            },
-            prop3:{
-                jungle: function(){
-                    return 'book';
-                }
-            }
-        };
-
-        assert.equal(config.prop1, 1);
-        assert.deepEqual(config.prop2, {foo: 'bar'}, 'prop2 has unexpected value');
-        assert(typeof config.prop3.jungle === 'function', 'prop3 is not a function');
+        fs.createReadStream(Test.file).pipe(fs.createWriteStream(destFile))
+            .on('error', fail).on('finish', pass);
 
     });
 
 
 });
+
+
+
