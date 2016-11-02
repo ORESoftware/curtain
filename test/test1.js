@@ -1,65 +1,58 @@
-/**
- * Created by denman on 2/7/2016.
- */
+const suman = require('suman');
+const Test = suman.init(module, {});
 
 
-//var suman = require('suman');
-
-var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
-//var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
-
-//var suman = require('C:\\Users\\denman\\WebstormProjects\\suman');
-//var suman = require('/Users/amills001c/WebstormProjects/ORESoftware/suman');
-var Test = suman.init(module, 'suman.conf.js');
-
-
-Test.describe('@TestServer1', [], function (delay, request, ioredis, didj) {
+Test.describe.delay('@TestServer1', {}, function (request) {
 
     var server = null;
 
+    const suite = this;
+
     setTimeout(function () {
-        delay();
+        suite.resume();
     }, 1000);
 
 
-    this.before('(start redis)', function (done, a, t) {
-        done();
+    this.before.cb('(start redis)', t => {
+        t.done();
     });
 
-    this.before('(stop any server running)', function (a, t, b, done) {
-        done();
+    this.before.cb('(stop any server running)', t => {
+        t.done();
     });
 
-    this.before('(start server)', function (done) {
+    this.before.cb('(start server)', t => {
         server = require('./test-servers/server-1.js');
-        server.on('listening', function () {
-            done();
-        });
+        server.on('listening', t.ctn);
     });
 
-    this.it('tests server', function (t, done) {
+    this.it.cb('tests server', t => {
 
         request('http://localhost:9999', function (err, resp, body) {
 
             if (err) {
-                done(err);
+                t.done(err);
             }
             else {
                 if (resp.statusCode < 202) {
-                    done();
+                    t.done();
                 }
                 else {
-                    done(new Error(resp.statusCode));
+                    t.done(new Error(resp.statusCode));
                 }
             }
         });
     });
 
 
-    this.it('tests server again', function () {
-
-
+    this.it.cb('tests server again', t => {
+        t.done();
     });
 
 
+    this.after.cb('shutdown-server', h => {
+        console.log('closing server');
+        server.once('close', h.ctn);
+        server.close();
+    });
 });

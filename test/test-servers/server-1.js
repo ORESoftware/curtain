@@ -1,49 +1,71 @@
-/**
- * Created by denman on 2/7/2016.
- */
-
-
 ////////////* this lib *////////////
 
-var RateLimiter = require('../../');
+const RateLimiter = require('../../');
 
 ///////////////////////////////////
 
-var http = require('http');
-var express = require('express');
+const http = require('http');
+const express = require('express');
 
 ///////////////////////////////////
 
 
-var app = express();
+const app = express();
 app.set('port', 9999);
 
 
-
-var rlm = new RateLimiter({
+const rlm = new RateLimiter({
     redis: {
         host: '127.0.0.1',
         port: 6379
     }
 });
 
-app.use(rlm.limit({
-    identifier: 'ip',
-    periodMillis: 1000,
-    maxReqsPerPeriod: 10
 
-}), function (err, req, res, next) {
-    res.json(err);
+app.use(function (req, res, next) {
 
-}, function (req, res, next) {
-    res.json({success: true});
+    rlm.limit({
+
+        req: req,
+        excludeRoutes: [],
+        maxReqsPerPeriod: 15,
+        periodMillis: 2000,
+        identifier: 'ip'
+
+    }).then(function (data) {
+
+        if (data.rateExceeded) {
+            res.status(429).json({error: 'Rate limit exceeded'});
+        } else {
+            next();
+        }
+
+    }, function (err) {
+
+        switch (err.type) {
+            case rlm.errors.REDIS_ERROR:
+                err.status = 500;
+                break;
+            case rlm.errors.NO_KEY: // whatever you chose to use as you're request unique identifier, there was a problem finding it
+                err.status = 500;
+                break;
+            case rlm.errors.BAD_ARGUMENTS: //if you have some dynamicism in your project, then maybe you could pass bad args at runtime
+                err.status = 500;
+                break;
+            default:
+                console.log('Unexpected err via rate limiter:', err);
+        }
+
+        next(err);
+
+    });
+
 });
 
 
 app.use(function (req, res) {
     res.json({error: 'this code should never be reached.'});
 });
-
 
 
 module.exports = http.createServer(app).listen(app.get('port'));

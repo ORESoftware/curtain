@@ -1,47 +1,58 @@
-/**
- * Created by amills001c on 4/13/16.
- */
+const suman = require('suman');
+const Test = suman.init(module, {});
 
 
-const suman = require('/Users/amills001c/WebstormProjects/oresoftware/suman');
-const Test = suman.init(module,{});
+Test.describe.delay('@TestServer1', {}, function (request) {
+
+    var server = null;
+
+    const suite = this;
+
+    setTimeout(function () {
+        suite.resume();
+    }, 1000);
 
 
-Test.describe('SimpleTest', function (assert, fs, os) {
-
-
-    this.it('tests-arrays', function () {
-        assert.equal(typeof [], 'object');
+    this.before.cb('(start redis)', t => {
+        t.done();
     });
 
+    this.before.cb('(stop any server running)', t => {
+        t.done();
+    });
 
-    ['describe', 'it', 'before', 'after', 'afterEach'].forEach(item => {
+    this.before.cb('(start server)', t => {
+        server = require('./test-servers/server-2.js');
+        server.on('listening', t.ctn);
+    });
 
-        this.it('tests-suman suite block for: ' + item, function () {
-            assert(this.hasOwnProperty(item));
+    this.it.cb('tests server', t => {
+
+        request('http://localhost:9999', function (err, resp, body) {
+
+            if (err) {
+                t.done(err);
+            }
+            else {
+                if (resp.statusCode < 202) {
+                    t.done();
+                }
+                else {
+                    t.done(new Error(resp.statusCode));
+                }
+            }
         });
-
-    });
-
-    this.it('Check that Test.file is equiv. to module.filename', {timeout: 20}, done => {
-        setTimeout(function () {
-            assert(module.filename === Test.file);
-            done();
-        }, 18);
     });
 
 
-    this.it('reads this file, pipes to /dev/null', function (fail, pass) {
-
-        const destFile = os.hostname === 'win32' ? process.env.USERPROFILE + '/temp' : '/dev/null';
-
-        fs.createReadStream(Test.file).pipe(fs.createWriteStream(destFile))
-            .on('error', fail).on('finish', pass);
-
+    this.it.cb('tests server again', t => {
+        t.done();
     });
 
 
+    this.after.cb('shutdown-server', h => {
+        console.log('closing server');
+        server.once('close', h.ctn);
+        server.close();
+    });
 });
-
-
-
