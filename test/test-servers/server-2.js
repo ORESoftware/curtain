@@ -1,4 +1,3 @@
-
 //core
 const util = require('util');
 const http = require('http');
@@ -33,6 +32,10 @@ app.use(rlm.limitMiddleware({
 
 }), function (err, req, res, next) {
 
+    if (!err.curtainError) {  //this error is not from the curtain library, pass it on
+        return next(err);
+    }
+
     switch (err.type) {
         case rlm.errors.REDIS_ERROR:
             err.status = 500;
@@ -44,8 +47,8 @@ app.use(rlm.limitMiddleware({
             err.status = 500;
             break;
         default:
-            const $err = err.stack || err;
-            console.error('Unexpected err via rate limiter:', typeof $err === 'string'? $err : util.inspect($err));
+            throw new Error('Unexpected err via rate limiter:' + typeof (err.stack || err) === 'string' ?
+                (err.stack || err) : util.inspect(err));
     }
 
     next(err);
@@ -55,14 +58,14 @@ app.use(rlm.limitMiddleware({
 
 app.use(function (req, res) {
     res.json({error: 'this code should never be reached.'});
-}, function(req,res,next){
+}, function (req, res, next) {
     throw new Error('nope');
 });
 
 
 app.use(function (err, req, res, next) {
     res.json({error: 'this code should never be reached => ' + util.inspect(err.stack || err)});
-}, function(req,res,next){
+}, function (req, res, next) {
     throw new Error('nope');
 });
 

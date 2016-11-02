@@ -94,7 +94,10 @@ Curtain.prototype.limitMiddleware = function (opts) {
             }
         }
         catch (err) {
-            return next(err);
+            return next({
+                curtainError: true,
+                error: err
+            });
         }
 
 
@@ -168,7 +171,7 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
             }
         }
 
-        workWithRedis(req, bigC.optz, client, resolve, reject);
+        workWithRedis(req, bigC.optz, bigC.client, resolve, reject);
     });
 
 };
