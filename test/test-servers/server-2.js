@@ -1,14 +1,16 @@
-////////////* this lib *////////////
 
+//core
+const util = require('util');
+const http = require('http');
+
+//npm
+const express = require('express');
+
+
+//this lib
 const RateLimiter = require('../../');
 
 ///////////////////////////////////
-
-const http = require('http');
-const express = require('express');
-
-///////////////////////////////////
-
 
 const app = express();
 app.set('port', 9999);
@@ -42,17 +44,24 @@ app.use(rlm.limitMiddleware({
             err.status = 500;
             break;
         default:
-            console.log('Unexpected err via rate limiter:', err);
+            const $err = err.stack || err;
+            console.error('Unexpected err via rate limiter:', typeof $err === 'string'? $err : util.inspect($err));
     }
 
     next(err);
-
 
 });
 
 
 app.use(function (req, res) {
     res.json({error: 'this code should never be reached.'});
+}, function(req,res,next){
+    throw new Error('nope');
+});
+
+
+app.use(function (err, req, res, next) {
+    res.json({error: 'this code should never be reached => ' + util.inspect(err.stack || err)});
 }, function(req,res,next){
     throw new Error('nope');
 });

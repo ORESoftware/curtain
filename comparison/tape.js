@@ -1,6 +1,3 @@
-/**
- * Created by denman on 2/13/2016.
- */
 
 var test = require('tape');
 

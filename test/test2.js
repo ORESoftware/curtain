@@ -2,15 +2,13 @@ const suman = require('suman');
 const Test = suman.init(module, {});
 
 
-Test.describe.delay('@TestServer1', {}, function (request) {
+Test.describe.delay('@TestServer1', {}, function (request, suite, util) {
 
     var server = null;
 
-    const suite = this;
-
     setTimeout(function () {
         suite.resume();
-    }, 1000);
+    }, 100);
 
 
     this.before.cb('(start redis)', t => {
@@ -31,14 +29,17 @@ Test.describe.delay('@TestServer1', {}, function (request) {
         request('http://localhost:9999', function (err, resp, body) {
 
             if (err) {
-                t.done(err);
+                t.fail(err);
             }
             else {
                 if (resp.statusCode < 202) {
-                    t.done();
+                    console.log(' => Response body', util.inspect(body));
+                    t.pass();
                 }
                 else {
-                    t.done(new Error(resp.statusCode));
+                    err = new Error('Unexpected status code:' +
+                        resp.statusCode + ', response body =>' + util.inspect(body));
+                    t.fail(err);
                 }
             }
         });

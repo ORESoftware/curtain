@@ -2,15 +2,13 @@ const suman = require('suman');
 const Test = suman.init(module, {});
 
 
-Test.describe.delay('@TestServer1', {}, function (request) {
+Test.create.delay('@TestServer1', {}, function (request, suite) {
 
     var server = null;
 
-    const suite = this;
-
     setTimeout(function () {
         suite.resume();
-    }, 1000);
+    }, 100);
 
 
     this.before.cb('(start redis)', t => {
