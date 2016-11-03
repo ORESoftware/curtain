@@ -15,7 +15,7 @@ const express = require('express');
 
 
 const app = express();
-app.set('port', 9999);
+app.set('port', 9998);
 
 
 const rlm = new RateLimiter({
@@ -32,14 +32,14 @@ app.use(function (req, res, next) {
 
         req: req,
         excludeRoutes: [],
-        maxReqsPerPeriod: 5,
-        periodMillis: 2000,
+        maxReqsPerPeriod: 10,
+        periodMillis: 1000,
         identifier: 'ip'
 
     }).then(function (data) {
 
         if (data.rateExceeded) {
-            res.status(429).json({error: 'Rate limit exceeded'});
+            res.status(429).json({error: 'Rate limit exceeded', length: data.length});
         } else {
             next();
         }

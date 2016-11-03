@@ -13,11 +13,11 @@ module.exports = Object.freeze({
     //regex
     matchAny: [],                              //recommended regex for "matchAny" => [/\.test\.js$/],
     matchNone: [/fixture/, /.*target/],        //recommended regex for "matchNone" => [/fixture/],
-    matchAll: [/\.test\.js$/],                 //recommended regex for "matchAll" => [],
+    matchAll: [/\.js$/],                 //recommended regex for "matchAll" => [],
 
     //string
     testDir: 'test',
-    testSrcDir: 'test/test-src',
+    testSrcDir: 'test/testsrc',
     testTargetDir: 'test/test-target',
     sumanHelpersDir: 'test/.suman',
     uniqueAppName: pckgDotJson.name || '',
