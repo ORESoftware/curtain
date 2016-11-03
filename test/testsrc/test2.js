@@ -20,7 +20,7 @@ Test.describe.delay('@TestServer1', {}, function (request, suite, util) {
     });
 
     this.before.cb('(start server)', t => {
-        server = require('./test-servers/server-2.js');
+        server = require('../test-servers/server-2.js');
         server.on('listening', t.ctn);
     });
 
@@ -33,7 +33,6 @@ Test.describe.delay('@TestServer1', {}, function (request, suite, util) {
             }
             else {
                 if (resp.statusCode < 202) {
-                    console.log(' => Response body', util.inspect(body));
                     t.pass();
                 }
                 else {
@@ -43,6 +42,35 @@ Test.describe.delay('@TestServer1', {}, function (request, suite, util) {
                 }
             }
         });
+    });
+
+    this.it.cb('tests server', {timeout: 3000}, t => {
+
+        const interval = setInterval(function () {
+            makeRequest();
+        }, 50);
+
+        t.once('done', function () {
+            clearInterval(interval);
+        });
+
+        function makeRequest() {
+
+            request('http://localhost:9999', function (err, resp, body) {
+
+                console.log('body =>',body);
+
+                if (err) {
+                    t.done(err);
+                }
+                else {
+                    if (resp.statusCode === 429) {
+                        t.done();
+                    }
+                }
+            });
+        }
+
     });
 
 

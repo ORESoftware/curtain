@@ -19,6 +19,8 @@ const filterIncludeExclude = require('./lib/filter-request');
 /*
  This is the simple version of this module that only rate limits requests by user/request id using Redis
 
+ note: https://developer.mozilla.org/en-US/docs/Mozilla/Redis_Tips
+
  TODO: allow ability to block users if rate is exceeded by far too much or too many consecutive times
  TODO: need to allow for rate limiting on particular routes
  => e.g., if the user has two different routes for which they want a different rate limit,
@@ -52,13 +54,13 @@ Curtain.errors = Curtain.prototype.errors = Object.freeze({
 });
 
 Curtain.opts = Curtain.prototype.opts = Object.freeze({
+    'req': 'req',
     'maxReqsPerPeriod': 'maxReqsPerPeriod',
     'periodMillis': 'periodMillis',
     'excludeRoutes': 'excludeRoutes',
     'includeRoutes': 'includeRoutes',
     'log': 'log'
 });
-
 
 
 Curtain.prototype.limitMiddleware = function (opts) {
@@ -85,6 +87,8 @@ Curtain.prototype.limitMiddleware = function (opts) {
     } = this.optz;
 
     return function (req, res, next) {
+
+        req.curtain = {};
 
         var filter;
 
@@ -115,7 +119,7 @@ Curtain.prototype.limitMiddleware = function (opts) {
         }
 
         //req, optz, client, resolve, reject
-        workWithRedis(req, bigC.optz, client, next, next);
+        workWithRedis(req, bigC.optz, client, next.bind(null, null), next);
 
     }
 
@@ -147,6 +151,9 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
 
     return new Promise(function (resolve, reject) {
 
+
+        req.curtain = {};
+
         var filter;
 
         try {
@@ -175,8 +182,6 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
     });
 
 };
-
-
 
 
 module.exports = Curtain;

@@ -19,7 +19,7 @@ module.exports = Object.freeze({
     testDir: 'test',
     testSrcDir: 'test/test-src',
     testTargetDir: 'test/test-target',
-    sumanHelpersDir: 'suman',
+    sumanHelpersDir: 'test/.suman',
     uniqueAppName: pckgDotJson.name || '',
     browser: 'Firefox',                 // browser to open test results with
 

@@ -26,13 +26,14 @@ const rlm = new RateLimiter({
 app.use(rlm.limitMiddleware({
 
     excludeRoutes: [],
-    maxReqsPerPeriod: 15,
+    maxReqsPerPeriod: 5,
     periodMillis: 2000,
     identifier: 'ip'
 
 }), function (err, req, res, next) {
 
     if (!err.curtainError) {  //this error is not from the curtain library, pass it on
+        console.log('zzzz');
         return next(err);
     }
 
@@ -47,26 +48,31 @@ app.use(rlm.limitMiddleware({
             err.status = 500;
             break;
         default:
-            throw new Error('Unexpected err via rate limiter:' + typeof (err.stack || err) === 'string' ?
+            throw new Error('Unexpected err via rate limiter XXX:' + typeof (err.stack || err) === 'string' ?
                 (err.stack || err) : util.inspect(err));
     }
 
     next(err);
 
+}, function(req,res,next){
+
+    if(req.curtain.rateExceeded){
+        res.status(429).json({error: 'Rate limit exceeded'});
+    }
+    else{
+        next();
+    }
+
 });
 
 
 app.use(function (req, res) {
-    res.json({error: 'this code should never be reached.'});
-}, function (req, res, next) {
-    throw new Error('nope');
+    res.json({success: 'request made it without exceeding limit.'});
 });
 
 
 app.use(function (err, req, res, next) {
     res.json({error: 'this code should never be reached => ' + util.inspect(err.stack || err)});
-}, function (req, res, next) {
-    throw new Error('nope');
 });
 
 

@@ -20,7 +20,7 @@ Test.create.delay('@TestServer1', {}, function (request, suite) {
     });
 
     this.before.cb('(start server)', t => {
-        server = require('./test-servers/server-1.js');
+        server = require('../test-servers/server-1.js');
         server.on('listening', t.ctn);
     });
 
@@ -42,6 +42,35 @@ Test.create.delay('@TestServer1', {}, function (request, suite) {
         });
     });
 
+
+    this.it.cb('tests server', {timeout: 3000}, t => {
+
+        const interval = setInterval(function () {
+            makeRequest();
+        }, 50);
+
+        t.once('done', function () {
+            clearInterval(interval);
+        });
+
+        function makeRequest() {
+
+            request('http://localhost:9999', function (err, resp, body) {
+
+                console.log('body =>',body);
+
+                if (err) {
+                    t.done(err);
+                }
+                else {
+                    if (resp.statusCode === 429) {
+                        t.done();
+                    }
+                }
+            });
+        }
+
+    });
 
     this.it.cb('tests server again', t => {
         t.done();

@@ -4,7 +4,11 @@ const RateLimiter = require('../../');
 
 ///////////////////////////////////
 
+//core
 const http = require('http');
+const util = require('util');
+
+//npm
 const express = require('express');
 
 ///////////////////////////////////
@@ -28,7 +32,7 @@ app.use(function (req, res, next) {
 
         req: req,
         excludeRoutes: [],
-        maxReqsPerPeriod: 15,
+        maxReqsPerPeriod: 5,
         periodMillis: 2000,
         identifier: 'ip'
 
@@ -42,6 +46,10 @@ app.use(function (req, res, next) {
 
     }, function (err) {
 
+        if (!err.curtainError) {  //this error is not from the curtain library, pass it on
+            return next(err);
+        }
+
         switch (err.type) {
             case rlm.errors.REDIS_ERROR:
                 err.status = 500;
@@ -53,7 +61,7 @@ app.use(function (req, res, next) {
                 err.status = 500;
                 break;
             default:
-                console.log('Unexpected err via rate limiter:', err);
+                throw new Error('Unexpected err via rate limiter:' + err);
         }
 
         next(err);
@@ -64,7 +72,11 @@ app.use(function (req, res, next) {
 
 
 app.use(function (req, res) {
-    res.json({error: 'this code should never be reached.'});
+    res.json({success: 'request did not exceed rate limit.'});
+});
+
+app.use(function (err, req, res, next) {
+    res.json({error: 'this code should never be reached => ' + util.inspect(err.stack || err)});
 });
 
 
