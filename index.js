@@ -13,6 +13,7 @@ const parseUrl = require('parseurl');
 const workWithRedis = require('./lib/work-with-redis');
 const setOptions = require('./lib/set-options');
 const filterIncludeExclude = require('./lib/filter-request');
+const debug = require('debug')('curtain');
 
 ///////////////////////////////////////////////////
 
@@ -105,17 +106,11 @@ Curtain.prototype.limitMiddleware = function (opts) {
         }
 
 
-        if (logFn) {
-            logFn('req with url:', req.path, 'was *processed* by curtain.');
-        }
-
-
+        logFn('=> Incoming request with url path:', req.path, 'was *processed* by Curtain rate-limiting library.');
         req.__curtained = req.__curtained ? req.__curtained++ : 1;
 
         if (req.__curtained > 1 && self.verbose) {
-            if (logFn) {
-                logFn('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
-            }
+            logFn('Warning: Curtain rate limiter invoked twice for this same request.');
         }
 
         //req, optz, client, resolve, reject
@@ -166,16 +161,11 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
         }
 
 
-        if (logFn) {
-            logFn('req with url:', req.path, 'was *processed* by curtain.');
-        }
-
+        logFn('=> Incoming request with url path:', req.path, 'was *processed* by Curtain rate-limiting library.');
         req.__curtained = req.__curtained ? req.__curtained++ : 1;
 
         if (req.__curtained > 1 && self.verbose) {
-            if (logFn) {
-                logFn('Warning: rate limiter used twice for this same request. Two suppress warnings like this, use verbose:false options.');
-            }
+            logFn('Warning: Curtain rate limiter invoked twice for this same request.');
         }
 
         workWithRedis(req, bigC.optz, bigC.client, resolve, reject);
