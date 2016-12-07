@@ -69,7 +69,7 @@ Curtain.prototype.limitMiddleware = function (opts) {
     try {
         this.optz = setOptions(opts);
     } catch (err) {
-        throw new Error(' => Curtain usage error => Bad arguments =>\n' + err.stack);
+        throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
     }
 
     const bigC = this;
@@ -128,7 +128,7 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
     try {
         this.optz = setOptions(opts);
     } catch (err) {
-        throw new Error(' => Curtain usage error => Bad arguments =>\n' + err.stack);
+        throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
     }
 
     const {
@@ -157,6 +157,7 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
             }
         }
         catch (err) {
+            //explicit for your pleasure
             return reject(err);
         }
 
