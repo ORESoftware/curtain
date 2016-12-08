@@ -18,9 +18,11 @@ a request has exceeed a threshold and should be rejected with a HTTP 429 or othe
 
 ```javascript
 
+// import the code
 const RateLimiter = require('curtain');
 
-var rlm = new RateLimiter({
+// initialize a new rlm instance (only really need one per redis connection)
+const rlm = new RateLimiter({
     redis: {
         port: 6379,
         host: '127.0.0.1',
@@ -29,28 +31,32 @@ var rlm = new RateLimiter({
 });
 
 
-module.exports = function rateLimitMiddleware(req, res, next) {
+ // promise based interface
+app.use(function (req, res, next) {
 
     rlm.limit({
 
         req: req,
-        log: log.debug.bind(log),
-        excludeRoutes: ['/v1/posts/by_id/:id/add_upvote', '/v1/posts/by_id/:id/remove_upvote', '/v1/handle/blacklisted'],
-        maxReqsPerPeriod: 15,
-        periodMillis: 2000,
+        excludeRoutes: [],
+        maxReqsPerPeriod: 10,
+        periodMillis: 1000,
         identifier: 'ip'
 
-    }).then(function(data) {
+    }).then(function (data) {
 
         if (data.rateExceeded) {
-            res.status(429).json({ error: 'Rate limit exceeded' });
+            res.status(429).json({error: 'Rate limit exceeded', length: data.length});
         } else {
             next();
         }
 
-    }, function(err) {
+    }, function (err) {
 
-        switch (err.type) { 
+        if (!err.curtainError) {  //this error is not from the curtain library, pass it on
+            return next(err);
+        }
+
+        switch (err.type) {
             case rlm.errors.REDIS_ERROR:
                 err.status = 500;
                 break;
@@ -61,15 +67,59 @@ module.exports = function rateLimitMiddleware(req, res, next) {
                 err.status = 500;
                 break;
             default:
-                log.warn('Unexpected err via rate limiter:', err);
+                throw new Error('Unexpected err via rate limiter:' + err);
         }
 
         next(err);
 
     });
 
+});
 
-};
+
+// middleware based interface
+ app.use(rlm.limitMiddleware({
+ 
+     excludeRoutes: [],
+     maxReqsPerPeriod: 5,
+     periodMillis: 2000,
+     identifier: 'ip'
+ 
+ }), function (err, req, res, next) {
+ 
+     if (!err.curtainError) {  //this error is not from the curtain library, pass it on
+         console.log('zzzz');
+         return next(err);
+     }
+ 
+     switch (err.type) {
+         case rlm.errors.REDIS_ERROR:
+             err.status = 500;
+             break;
+         case rlm.errors.NO_KEY: // whatever you chose to use as you're request unique identifier, there was a problem finding it
+             err.status = 500;
+             break;
+         case rlm.errors.BAD_ARGUMENTS: //if you have some dynamicism in your project, then maybe you could pass bad args at runtime
+             err.status = 500;
+             break;
+         default:
+             throw new Error('Unexpected err via rate limiter XXX:' + typeof (err.stack || err) === 'string' ?
+                 (err.stack || err) : util.inspect(err));
+     }
+ 
+     next(err);
+ 
+ }, function(req,res,next){
+ 
+     if(req.curtain.rateExceeded){
+         res.status(429).json({error: 'Rate limit exceeded'});
+     }
+     else{
+         next();
+     }
+ 
+ });
+ 
 
 ```
 
