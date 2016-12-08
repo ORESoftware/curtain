@@ -26,7 +26,7 @@ module.exports = Object.freeze({
     //boolean
     bail: true,                     // when running one file, bail will bail test at first test failure
     bailRunner: true,               // when using the runner, bail will bail runner at first test failure in any file
-    transpile: false,                      // transpile is false by default, can be overridden with command line also
+    transpile: true,                      // transpile is false by default, can be overridden with command line also
     executeRunnerCWDAtTestFile: true,   // if false, CWD for runner will be project root dir
     sendStderrToSumanErrLogOnly: true,
     useSuiteNameInTestCaseOutput: false,
@@ -93,7 +93,7 @@ module.exports = Object.freeze({
 
     },
 
-    useBabelRegister: false,
+    useBabelRegister: true,
     babelRegisterOpts: {
 
         // Optional ignore regex - if any filenames match this regex then they
