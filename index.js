@@ -64,16 +64,17 @@ Curtain.opts = Curtain.prototype.opts = Object.freeze({
 });
 
 
-Curtain.prototype.limitMiddleware = function (opts) {
+Curtain.prototype.limitMiddleware = function ($opts) {
 
+    var opts;
     try {
-        this.optz = setOptions(opts);
+        opts  = setOptions($opts);
     } catch (err) {
         throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
     }
 
-    const bigC = this;
-    const client = bigC.client;
+    const self = this;
+    const client = this.client;
 
     const {
 
@@ -85,16 +86,16 @@ Curtain.prototype.limitMiddleware = function (opts) {
         identifier,
         periodMillis
 
-    } = this.optz;
+    } = opts;
 
     return function (req, res, next) {
 
+        // assume same request cannot be in two middleware functions concurrently
         req.curtain = {};
 
         var filter;
-
         try {
-            if (filter = filterIncludeExclude(bigC.optz, parseUrl(req).pathname)) {
+            if (filter = filterIncludeExclude(opts, parseUrl(req).pathname)) {
                 return next(filter);
             }
         }
@@ -114,22 +115,26 @@ Curtain.prototype.limitMiddleware = function (opts) {
         }
 
         //req, optz, client, resolve, reject
-        workWithRedis(req, bigC.optz, client, next.bind(null, null), next);
+        workWithRedis(req, opts, client, next.bind(null, null), next);
 
     }
 
 };
 
 
-Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
+Curtain.prototype.limit = function rateLimitWithCurtain($opts) {
 
-    const bigC = this;
+    const self = this;
+
+    var opts;
 
     try {
-        this.optz = setOptions(opts);
+        opts = setOptions($opts);
     } catch (err) {
         throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
     }
+
+    const client = this.client;
 
     const {
 
@@ -142,17 +147,16 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
         identifier,
         periodMillis
 
-    } = this.optz;
+    } = opts;
 
     return new Promise(function (resolve, reject) {
-
 
         req.curtain = {};
 
         var filter;
 
         try {
-            if (filter = filterIncludeExclude(bigC.optz, parseUrl(req).pathname)) {
+            if (filter = filterIncludeExclude(opts, parseUrl(req).pathname)) {
                 return resolve(filter);
             }
         }
@@ -169,7 +173,7 @@ Curtain.prototype.limit = function rateLimitWithCurtain(opts) {
             logFn('Warning: Curtain rate limiter invoked twice for this same request.');
         }
 
-        workWithRedis(req, bigC.optz, bigC.client, resolve, reject);
+        workWithRedis(req, opts, client, resolve, reject);
     });
 
 };
