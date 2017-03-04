@@ -1,6 +1,5 @@
 'use strict';
 
-
 //core
 const assert = require('assert');
 
@@ -31,152 +30,146 @@ const debug = require('debug')('curtain');
 
 ////////////////////////////////////////////////
 
-function Curtain(conf) {
+function Curtain (conf) {
 
-    this.verbose = conf.verbose !== false; //default to true
+  this.verbose = conf.verbose !== false; //default to true
 
-    if (conf.redis) {
-        if (conf.redis.client) {
-            this.client = conf.redis.client;
-        } else {
-            this.client = new Redis(conf.redis);
-        }
+  if (conf.redis) {
+    if (conf.redis.client) {
+      this.client = conf.redis.client;
     } else {
-        throw new Error('No Redis configuration provided to Curtain module constructor');
+      this.client = new Redis(conf.redis);
     }
+  } else {
+    throw new Error('No Redis configuration provided to Curtain module constructor');
+  }
 }
 
-
 Curtain.errors = Curtain.prototype.errors = Object.freeze({
-    'NO_KEY': 'NO_KEY',
-    'RATE_EXCEEDED': 'RATE_EXCEEDED',
-    'REDIS_ERROR': 'REDIS_ERROR',
-    'BAD_ARGUMENTS': 'BAD_ARGUMENTS'
+  'NO_KEY': 'NO_KEY',
+  'RATE_EXCEEDED': 'RATE_EXCEEDED',
+  'REDIS_ERROR': 'REDIS_ERROR',
+  'BAD_ARGUMENTS': 'BAD_ARGUMENTS'
 });
 
 Curtain.opts = Curtain.prototype.opts = Object.freeze({
-    'req': 'req',
-    'maxReqsPerPeriod': 'maxReqsPerPeriod',
-    'periodMillis': 'periodMillis',
-    'excludeRoutes': 'excludeRoutes',
-    'includeRoutes': 'includeRoutes',
-    'log': 'log'
+  'req': 'req',
+  'maxReqsPerPeriod': 'maxReqsPerPeriod',
+  'periodMillis': 'periodMillis',
+  'excludeRoutes': 'excludeRoutes',
+  'includeRoutes': 'includeRoutes',
+  'log': 'log'
 });
-
 
 Curtain.prototype.limitMiddleware = function ($opts) {
 
-    var opts;
+  let opts;
+  try {
+     opts = setOptions($opts);
+  } catch (err) {
+    throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
+  }
+
+  const self = this;
+  const client = this.client;
+
+  const {
+
+    logFn,
+    excludeRoutesRegexp,
+    includeOnlyRoutesRegexp,
+    isIncludeOnly,
+    maxReqsPerPeriod,
+    identifier,
+    periodMillis
+
+  } = opts;
+
+  return function (req, res, next) {
+
+    // assume same request cannot be in two middleware functions concurrently
+    req.curtain = {};
+
+    var filter;
     try {
-        opts  = setOptions($opts);
-    } catch (err) {
-        throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
+      if (filter = filterIncludeExclude(opts, parseUrl(req).pathname)) {
+        return next(filter);
+      }
+    }
+    catch (err) {
+      return next({
+        curtainError: true,
+        error: err
+      });
     }
 
-    const self = this;
-    const client = this.client;
+    logFn('=> Incoming request with url path:', req.path, 'was *processed* by Curtain rate-limiting library.');
+    req.__curtained = req.__curtained ? req.__curtained++ : 1;
 
-    const {
-
-        logFn,
-        excludeRoutesRegexp,
-        includeOnlyRoutesRegexp,
-        isIncludeOnly,
-        maxReqsPerPeriod,
-        identifier,
-        periodMillis
-
-    } = opts;
-
-    return function (req, res, next) {
-
-        // assume same request cannot be in two middleware functions concurrently
-        req.curtain = {};
-
-        var filter;
-        try {
-            if (filter = filterIncludeExclude(opts, parseUrl(req).pathname)) {
-                return next(filter);
-            }
-        }
-        catch (err) {
-            return next({
-                curtainError: true,
-                error: err
-            });
-        }
-
-
-        logFn('=> Incoming request with url path:', req.path, 'was *processed* by Curtain rate-limiting library.');
-        req.__curtained = req.__curtained ? req.__curtained++ : 1;
-
-        if (req.__curtained > 1 && self.verbose) {
-            logFn('Warning: Curtain rate limiter invoked twice for this same request.');
-        }
-
-        //req, optz, client, resolve, reject
-        workWithRedis(req, opts, client, next.bind(null, null), next);
-
+    if (req.__curtained > 1 && self.verbose) {
+      logFn('Warning: Curtain rate limiter invoked twice for this same request.');
     }
+
+    //req, optz, client, resolve, reject
+    workWithRedis(req, opts, client, next.bind(null, null), next);
+
+  }
 
 };
 
+Curtain.prototype.limit = function rateLimitWithCurtain ($opts) {
 
-Curtain.prototype.limit = function rateLimitWithCurtain($opts) {
+  const self = this;
 
-    const self = this;
+  let opts;
 
-    var opts;
+  try {
+     opts = setOptions($opts);
+  } catch (err) {
+    throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
+  }
+
+  const client = this.client;
+
+  const {
+
+    req,
+    logFn,
+    excludeRoutesRegexp,
+    includeOnlyRoutesRegexp,
+    isIncludeOnly,
+    maxReqsPerPeriod,
+    identifier,
+    periodMillis
+
+  } = opts;
+
+  return new Promise(function (resolve, reject) {
+
+    req.curtain = {};
+
+    var filter;
 
     try {
-        opts = setOptions($opts);
-    } catch (err) {
-        throw new Error(' => Curtain usage error => Bad arguments =>\n' + (err.stack || err));
+      if (filter = filterIncludeExclude(opts, parseUrl(req).pathname)) {
+        return resolve(filter);
+      }
+    }
+    catch (err) {
+      //explicit for your pleasure
+      return reject(err);
     }
 
-    const client = this.client;
+    logFn('=> Incoming request with url path:', req.path, 'was *processed* by Curtain rate-limiting library.');
+    req.__curtained = req.__curtained ? req.__curtained++ : 1;
 
-    const {
+    if (req.__curtained > 1 && self.verbose) {
+      logFn('Warning: Curtain rate limiter invoked twice for this same request.');
+    }
 
-        req,
-        logFn,
-        excludeRoutesRegexp,
-        includeOnlyRoutesRegexp,
-        isIncludeOnly,
-        maxReqsPerPeriod,
-        identifier,
-        periodMillis
-
-    } = opts;
-
-    return new Promise(function (resolve, reject) {
-
-        req.curtain = {};
-
-        var filter;
-
-        try {
-            if (filter = filterIncludeExclude(opts, parseUrl(req).pathname)) {
-                return resolve(filter);
-            }
-        }
-        catch (err) {
-            //explicit for your pleasure
-            return reject(err);
-        }
-
-
-        logFn('=> Incoming request with url path:', req.path, 'was *processed* by Curtain rate-limiting library.');
-        req.__curtained = req.__curtained ? req.__curtained++ : 1;
-
-        if (req.__curtained > 1 && self.verbose) {
-            logFn('Warning: Curtain rate limiter invoked twice for this same request.');
-        }
-
-        workWithRedis(req, opts, client, resolve, reject);
-    });
+    workWithRedis(req, opts, client, resolve, reject);
+  });
 
 };
-
 
 module.exports = Curtain;
