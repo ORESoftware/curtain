@@ -34,3 +34,10 @@ node_modules/
 
 *suman/logs/
 test-target/
+
+# machine-local symlink to ORESoftware/my-ai AGENTS.md; never committed
+.ores/
+
+# Repository-local temporary data and authorized Git worktrees
+tmp/
+temp/
